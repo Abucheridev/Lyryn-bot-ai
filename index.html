@@ -1,0 +1,86 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1f24"><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg"><title>Lyryn</title>
+<style>
+:root{--bg:#0f1f24;--s:#17303a;--s2:#21424f;--t:#e8f1ee;--m:#8fa9a8;--a:#f2b84b;--g:#7fd1b9}
+*{box-sizing:border-box;margin:0}html,body{height:100%}
+body{background:var(--bg);color:var(--t);font:16px/1.5 system-ui,sans-serif;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+header{padding:14px 18px 4px;font:700 26px Georgia,serif}
+main{flex:1;overflow:auto;padding:8px 16px 0}
+nav{display:flex;background:var(--s);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;padding:14px 0;background:none;border:0;color:var(--m);font:inherit;font-size:14px}
+nav button.on{color:var(--a);box-shadow:inset 0 3px var(--a)}
+.b{max-width:85%;padding:10px 14px;margin:8px 0;border-radius:16px;white-space:pre-wrap;word-wrap:break-word}
+.u{background:var(--a);color:#1a1405;margin-left:auto;border-bottom-right-radius:4px}
+.a{background:var(--s);border-bottom-left-radius:4px}
+.bar{position:sticky;bottom:0;display:flex;gap:8px;padding:10px 0;background:var(--bg)}
+input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--s2);background:var(--s);color:var(--t);font:inherit}
+button.p{padding:12px 18px;border:0;border-radius:10px;background:var(--g);color:#06241c;font:600 15px system-ui}
+.row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--s)}
+.row span{flex:1}.done span{text-decoration:line-through;color:var(--m)}
+.x{background:none;border:0;color:var(--m);font-size:20px}
+label{display:block;margin:14px 0 4px;color:var(--m);font-size:14px}
+.e{color:var(--m);padding:30px 0;text-align:center}
+textarea{width:100%;min-height:260px;margin:10px 0;padding:12px;border-radius:10px;border:1px solid var(--s2);background:var(--s);color:var(--t);font:inherit}
+</style></head><body>
+<header>Lyryn</header><main id="m"></main>
+<nav id="n"></nav>
+<script>
+const L={en:{chat:'Chat',tasks:'Tasks',plan:'Plan',set:'Settings',ask:'Ask Lyryn',send:'Send',emptyC:'Ask anything, or tell me what to plan.',addT:'New task',add:'Add',emptyT:'No tasks yet. Add your first one.',evT:'Event title',emptyE:'Nothing scheduled.',key:'Anthropic API key',model:'Model',lang:'Language',clear:'Clear chat',needkey:'Add your API key in Settings first.',saved:'Saved on this device only.',name:'English',blog:'Blog',topic:'What is the blog about?',write:'Write blog',copy:'Copy',save:'Save draft',copied:'Copied.',drafts:'Drafts',tones:['Casual','Professional','Storytelling'],lens:['Short','Medium','Long']},
+sw:{chat:'Gumzo',tasks:'Kazi',plan:'Ratiba',set:'Mipangilio',ask:'Muulize Lyryn',send:'Tuma',emptyC:'Uliza chochote, au niambie nipange nini.',addT:'Kazi mpya',add:'Ongeza',emptyT:'Hakuna kazi bado. Ongeza ya kwanza.',evT:'Jina la tukio',emptyE:'Hakuna kilichopangwa.',key:'Ufunguo wa Anthropic API',model:'Modeli',lang:'Lugha',clear:'Futa gumzo',needkey:'Weka ufunguo wa API kwenye Mipangilio kwanza.',saved:'Inahifadhiwa kwenye simu hii pekee.',name:'Kiswahili',blog:'Blogu',topic:'Blogu inahusu nini?',write:'Andika blogu',copy:'Nakili',save:'Hifadhi rasimu',copied:'Imenakiliwa.',drafts:'Rasimu',tones:['Kawaida','Kitaalamu','Hadithi'],lens:['Fupi','Wastani','Ndefu']},
+es:{chat:'Chat',tasks:'Tareas',plan:'Agenda',set:'Ajustes',ask:'Pregunta a Lyryn',send:'Enviar',emptyC:'Pregunta lo que quieras o dime qué planear.',addT:'Nueva tarea',add:'Añadir',emptyT:'Aún no hay tareas. Añade la primera.',evT:'Título del evento',emptyE:'Nada programado.',key:'Clave de API de Anthropic',model:'Modelo',lang:'Idioma',clear:'Borrar chat',needkey:'Primero añade tu clave de API en Ajustes.',saved:'Se guarda solo en este dispositivo.',name:'Español',blog:'Blog',topic:'¿De qué trata el blog?',write:'Escribir blog',copy:'Copiar',save:'Guardar borrador',copied:'Copiado.',drafts:'Borradores',tones:['Casual','Profesional','Narrativo'],lens:['Corto','Medio','Largo']}};
+let S={key:'',model:'claude-sonnet-5-5',lang:'en',chat:[],tasks:[],events:[],drafts:[]};
+try{S={...S,...JSON.parse(localStorage.lyryn3||'{}')}}catch(e){}
+const save=()=>{try{localStorage.lyryn3=JSON.stringify(S)}catch(e){}};
+const t=k=>L[S.lang][k],esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let tab='chat',busy=false;
+const $=s=>document.querySelector(s);
+function ctx(){const o=S.tasks.filter(x=>!x.done).map(x=>x.text).join('; ')||'none';
+const ev=S.events.map(x=>x.title+' @ '+x.at).join('; ')||'none';
+return `You are Lyryn, a concise, friendly personal assistant. Reply in ${L[S.lang].name}. Now: ${new Date().toString()}. Open tasks: ${o}. Events: ${ev}.`}
+function render(){
+$('#n').innerHTML=['chat','blog','tasks','plan','set'].map(k=>`<button class="${k==tab?'on':''}" onclick="tab='${k}';render()">${t(k)}</button>`).join('');
+let h='';
+if(tab=='chat'){h=(S.chat.length?S.chat.map(m=>`<div class="b ${m.role=='user'?'u':'a'}">${esc(m.content)}</div>`).join(''):`<div class="e">${t('emptyC')}</div>`)+(busy?'<div class="b a">…</div>':'')
++`<div class="bar"><input id="in" placeholder="${t('ask')}" onkeydown="if(event.key=='Enter')send()"><button class="p" onclick="send()">${t('send')}</button></div>`}
+if(tab=='tasks'){h=`<div class="bar" style="position:static"><input id="in" placeholder="${t('addT')}" onkeydown="if(event.key=='Enter')addT()"><button class="p" onclick="addT()">${t('add')}</button></div>`
++(S.tasks.length?S.tasks.map(x=>`<div class="row ${x.done?'done':''}"><input type="checkbox" style="width:22px" ${x.done?'checked':''} onchange="tog(${x.id})"><span>${esc(x.text)}</span><button class="x" onclick="del('tasks',${x.id})">×</button></div>`).join(''):`<div class="e">${t('emptyT')}</div>`)}
+if(tab=='plan'){const ev=[...S.events].sort((a,b)=>a.at.localeCompare(b.at));
+h=`<input id="et" placeholder="${t('evT')}" style="margin-bottom:8px"><div class="bar" style="position:static"><input id="ea" type="datetime-local"><button class="p" onclick="addE()">${t('add')}</button></div>`
++(ev.length?ev.map(x=>`<div class="row"><span><b>${esc(x.title)}</b><br><small style="color:var(--m)">${new Date(x.at).toLocaleString()}</small></span><button class="x" onclick="del('events',${x.id})">×</button></div>`).join(''):`<div class="e">${t('emptyE')}</div>`)}
+if(tab=='blog'){const o=(a,v)=>a.map((x,i)=>`<option value="${i}" ${i==v?'selected':''}>${x}</option>`).join('');
+h=`<input id="bt" placeholder="${t('topic')}" value="${esc(B.topic)}" oninput="B.topic=this.value" style="margin-bottom:8px"><div style="display:flex;gap:8px;margin-bottom:10px"><select onchange="B.tone=+this.value">${o(t('tones'),B.tone)}</select><select onchange="B.len=+this.value">${o(t('lens'),B.len)}</select></div>
+<button class="p" style="width:100%" onclick="writeB()">${busy?'…':t('write')}</button>
+<textarea oninput="B.text=this.value">${esc(B.text)}</textarea>
+<div style="display:flex;gap:8px"><button class="p" onclick="copyB()">${t('copy')}</button><button class="p" onclick="saveB()">${t('save')}</button></div>
+<label>${t('drafts')}</label>`+S.drafts.map(x=>`<div class="row"><span onclick="B.text=S.drafts.find(d=>d.id==${x.id}).text;render()">${esc(x.title)}</span><button class="x" onclick="del('drafts',${x.id})">×</button></div>`).join('')}
+if(tab=='set'){h=`<label>${t('lang')}</label><select onchange="S.lang=this.value;save();render()">${Object.keys(L).map(k=>`<option value="${k}" ${k==S.lang?'selected':''}>${L[k].name}</option>`).join('')}</select>
+<label>${t('key')}</label><input type="password" value="${esc(S.key)}" onchange="S.key=this.value.trim();save()" placeholder="sk-ant-…"><small style="color:var(--m)">${t('saved')}</small>
+<label>${t('model')}</label><input value="${esc(S.model)}" onchange="S.model=this.value.trim();save()">
+<p style="margin-top:20px"><button class="p" onclick="S.chat=[];save();tab='chat';render()">${t('clear')}</button></p>`}
+$('#m').innerHTML=h;$('#m').scrollTop=tab=='chat'?1e9:0}
+function addT(){const v=$('#in').value.trim();if(!v)return;S.tasks.unshift({id:Date.now(),text:v,done:false});save();render()}
+function tog(id){const x=S.tasks.find(x=>x.id==id);x.done=!x.done;save();render()}
+function del(k,id){S[k]=S[k].filter(x=>x.id!=id);save();render()}
+function addE(){const a=$('#et').value.trim(),b=$('#ea').value;if(!a||!b)return;S.events.push({id:Date.now(),title:a,at:b});save();render()}
+async function send(){const i=$('#in'),v=i.value.trim();if(!v||busy)return;
+if(!S.key){tab='set';render();return alert(t('needkey'))}
+S.chat.push({role:'user',content:v});busy=true;save();render();
+try{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':S.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:S.model,max_tokens:1024,system:ctx(),messages:S.chat.slice(-20)})});
+const d=await r.json();if(!r.ok)throw new Error(d.error&&d.error.message||r.status);
+S.chat.push({role:'assistant',content:d.content.map(c=>c.text||'').join('')})}
+catch(e){S.chat.push({role:'assistant',content:'⚠ '+e.message})}
+busy=false;save();render()}
+let B={topic:'',tone:0,len:1,text:''};
+async function writeB(){if(!B.topic.trim()||busy)return;if(!S.key){tab='set';render();return alert(t('needkey'))}
+busy=true;render();
+const tn=['casual and conversational','professional and clear','storytelling with a personal narrative'][B.tone],w=[300,600,1000][B.len];
+try{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':S.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:S.model,max_tokens:2500,system:`You are an expert blog writer. Write in ${L[S.lang].name}. Output only the blog post: a title on the first line, then short paragraphs with subheadings. No preamble.`,messages:[{role:'user',content:`Topic: ${B.topic}\nTone: ${tn}\nLength: about ${w} words`}]})});
+const d=await r.json();if(!r.ok)throw new Error(d.error&&d.error.message||r.status);
+B.text=d.content.map(c=>c.text||'').join('')}catch(e){B.text='⚠ '+e.message}
+busy=false;render()}
+function saveB(){if(!B.text.trim())return;S.drafts.unshift({id:Date.now(),title:B.text.split('\n')[0].replace(/^#+\s*/,'').slice(0,60)||B.topic,text:B.text});save();render()}
+function copyB(){navigator.clipboard.writeText(B.text).then(()=>alert(t('copied')),()=>{})}
+render();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>
